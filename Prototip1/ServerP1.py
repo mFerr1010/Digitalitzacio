@@ -35,7 +35,7 @@ if(u):
 else:
     print("No trobat")
 
-# http://localhost:5000/tapatapp/getuser
+# http://localhost:10050/tapatapp/getuser
 
 app = Flask(__name__)
 
