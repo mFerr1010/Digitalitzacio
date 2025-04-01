@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 import dadesserver as dades
+import uuid
 
 app = Flask(__name__)
 
@@ -11,9 +12,9 @@ class UserDAO:
     def get_all_users(self):
         return [user.__dict__ for user in self.users]
 
-    def get_user_by_username(self, username):
+    def get_user_by_username_and_password(self, username, password):
         for user in self.users:
-            if user.username == username:
+            if user.username == username and user.password == password:
                 return user.__dict__
         return None
 
@@ -32,36 +33,29 @@ class ChildDAO:
 user_dao = UserDAO()
 child_dao = ChildDAO()
 
+# Tokens activos
+active_tokens = {}
+
 # Rutas de la API
-@app.route('/users', methods=['GET'])
-def get_users():
-    return jsonify(user_dao.get_all_users())
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    if not data or 'username' not in data or 'password' not in data:
+        return jsonify({'error': 'Falten paràmetres'}), 400
 
-@app.route('/users/<string:username>', methods=['GET'])
-def get_user_by_username(username):
-    user = user_dao.get_user_by_username(username)
-    return jsonify(user) if user else ('User not found', 404)
-
-@app.route('/children', methods=['GET'])
-def get_children():
-    return jsonify(child_dao.get_all_children())
-
-@app.route('/children/<int:user_id>', methods=['GET'])
-def get_children_by_user(user_id):
-    return jsonify(child_dao.get_children_by_user_id(user_id))
-
-# Token d'autenticació esperat
-TOKEN_VALID = "secret123"
-
-
-# Token d'autenticació esperat
-TOKEN_VALID = "secret123"
+    user = user_dao.get_user_by_username_and_password(data['username'], data['password'])
+    if user:
+        token = str(uuid.uuid4())  # Generar un token único
+        active_tokens[token] = user['id']  # Asociar el token con el ID del usuario
+        return jsonify({'token': token, 'user': user})  # Incluir los datos del usuario
+    else:
+        return jsonify({'error': 'Credenciales incorrectas'}), 401
 
 @app.route('/sumar', methods=['POST'])
 def sumar():
     # Verificar el token
     token = request.headers.get('Authorization')
-    if token != f"Bearer {TOKEN_VALID}":
+    if not token or token not in active_tokens:
         return jsonify({'error': 'Accés no autoritzat'}), 401
 
     # Obtenir dades JSON
