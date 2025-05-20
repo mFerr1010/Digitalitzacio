@@ -19,7 +19,7 @@ class DAOUser:
         user = self.cursor.fetchone()
         return user
 
-    def get_user_by_token(self, token):  # <-- ¡nuevo método!
+    def get_user_by_token(self, token):  
         query = "SELECT * FROM User WHERE token = %s"
         self.cursor.execute(query, (token,))
         user = self.cursor.fetchone()
